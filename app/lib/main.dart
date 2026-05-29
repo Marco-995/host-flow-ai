@@ -6,6 +6,7 @@ import 'core/session/session_controller.dart';
 import 'core/storage/secure_token_storage.dart';
 import 'core/storage/token_storage.dart';
 import 'data/repositories/auth_repository.dart';
+import 'data/repositories/ticket_repository.dart';
 import 'features/auth/view/auth_gate.dart';
 
 void main() {
@@ -14,6 +15,7 @@ void main() {
   final apiClient = ApiClient();
   final tokenStorage = SecureTokenStorage();
   final authRepository = AuthRepository(apiClient: apiClient);
+  final ticketRepository = TicketRepository(apiClient: apiClient);
   final sessionController = SessionController(
     authRepository: authRepository,
     tokenStorage: tokenStorage,
@@ -28,6 +30,7 @@ void main() {
         Provider<TokenStorage>.value(value: tokenStorage),
         Provider<ApiClient>.value(value: apiClient),
         Provider<AuthRepository>.value(value: authRepository),
+        Provider<TicketRepository>.value(value: ticketRepository),
         ChangeNotifierProvider<SessionController>.value(
           value: sessionController,
         ),

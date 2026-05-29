@@ -49,6 +49,15 @@ final health = await HealthRepository(
 ).checkHealth();
 ```
 
+## Support tickets (Step 4)
+
+With cp-chatbot running and a user that has ticket permissions:
+
+1. Login as **staff** or **super**.
+2. Open **Website Bot → Tickets / Support**.
+3. The app loads `GET /api/v1/tickets` (list, empty, or error with retry).
+4. Tapping a ticket shows a hint that details arrive in Step 5.
+
 ## RBAC navigation (Step 3)
 
 After login, menu visibility depends on role and permissions from `GET /api/v1/users/me`:
