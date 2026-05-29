@@ -2,7 +2,12 @@
 
 ## Status
 
-Open
+Resolved
+
+## Resolved In
+
+- Commit: `7497a13`
+- Notes: Added ticket message thread and staff replies.
 
 ## Priority
 
