@@ -25,7 +25,7 @@ GitHub Issues are not used for this track. Each step is a Markdown file in this 
 |------|------|----------|------------|
 | 9 | [step-09-mock-cleanup-tests.md](./step-09-mock-cleanup-tests.md) | P1 | Steps 4–8 |
 
-Steps 4 → 5 → 6 → 7 → 8 are complete; Step 9 is next.
+Steps 4 → 5 → 6 → 7 → 8 are complete; **Step 9** (mock cleanup, honest demo labeling, README smoke) is the remaining integration-track step before future backlog work.
 
 ## Future / backlog
 

@@ -194,12 +194,12 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Performance (Letzte 7 Tage)',
+            'Performance (Demo)',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Demo-KPIs — Analytics-API folgt in Step 8.',
+            'Demo-KPIs — echte Analytics findest du unter Bot Statistiken.',
             style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 24),
@@ -376,9 +376,19 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
         children: [
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              'Website-Widget Vorschau',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Website-Widget Vorschau',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Mock-Chat — keine Conversation API in v1.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),

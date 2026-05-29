@@ -1,3 +1,6 @@
+// Prototype model for the E-Mail-Automation demo screen only.
+// Not related to cp-chatbot Support Tickets (TicketRepository / ticket_models).
+
 class EmailTicket {
   final String id;
   final String senderName;

@@ -16,13 +16,53 @@ class OverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = <Widget>[
+      if (AppNavigation.canAccess(AppNavItem.supportTickets, user))
+        _buildSummaryCard(
+          icon: Icons.confirmation_num_outlined,
+          iconColor: Colors.purple,
+          title: 'Support-Tickets',
+          description:
+              'Eskalierte Anfragen aus cp-chatbot (API). Liste, Detail und Nachrichtenverlauf.',
+          buttonText: 'Tickets öffnen',
+          onTap: () => onNavigate(AppNavItem.supportTickets),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.knowledgeBase, user))
+        _buildSummaryCard(
+          icon: Icons.menu_book_outlined,
+          iconColor: Colors.indigo,
+          title: 'Wissensdatenbank',
+          description:
+              'Knowledge-Dokumente aus der API (read-only). Upload und Ingest folgen später.',
+          buttonText: 'Wissensdatenbank',
+          onTap: () => onNavigate(AppNavItem.knowledgeBase),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.botStatistics, user))
+        _buildSummaryCard(
+          icon: Icons.bar_chart_rounded,
+          iconColor: Colors.teal,
+          title: 'Bot Statistiken',
+          description:
+              'Aggregierte Chat-Analytics aus GET /api/v1/analytics/summary (7/30/90 Tage).',
+          buttonText: 'Statistiken',
+          onTap: () => onNavigate(AppNavItem.botStatistics),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.websiteBotOverview, user))
+        _buildSummaryCard(
+          icon: Icons.chat_bubble_outline,
+          iconColor: Colors.purple,
+          title: 'Website Bot Übersicht',
+          description:
+              'Bot-Config aus der API; Mock-Chat im Simulator. Demo-KPIs — echte Analytics unter Bot Statistiken.',
+          buttonText: 'Öffnen',
+          onTap: () => onNavigate(AppNavItem.websiteBotOverview),
+        ),
       if (AppNavigation.canAccess(AppNavItem.emails, user))
         _buildSummaryCard(
           icon: Icons.mark_email_unread_outlined,
           iconColor: Colors.blue,
-          title: '5 neue E-Mails',
+          title: '(Demo) 5 neue E-Mails',
           description:
-              'Kategorisiert und Antworten durch die KI vorbereitet. Warten auf Freigabe.',
+              'Beispieldaten — keine cp-chatbot API. Nicht das Support-Ticket-System.',
           buttonText: 'E-Mails prüfen',
           onTap: () => onNavigate(AppNavItem.emails),
         ),
@@ -30,9 +70,9 @@ class OverviewScreen extends StatelessWidget {
         _buildSummaryCard(
           icon: Icons.star_border_outlined,
           iconColor: Colors.orange,
-          title: '3 Bewertungen',
+          title: '(Demo) 3 Bewertungen',
           description:
-              'Neue Google-Rezensionen wurden automatisch und charmant beantwortet.',
+              'Beispieldaten für Rezensions-Workflow — keine API in v1.',
           buttonText: 'Rezensionen',
           onTap: () => onNavigate(AppNavItem.reviews),
         ),
@@ -40,38 +80,19 @@ class OverviewScreen extends StatelessWidget {
         _buildSummaryCard(
           icon: Icons.cloudy_snowing,
           iconColor: Colors.teal,
-          title: 'Concierge-Update',
+          title: '(Demo) Concierge-Update',
           description:
-              'Regen erwartet. Gäste erhalten nun automatisch Tipps für Indoor-Aktivitäten.',
+              'Beispieldaten und Mock-Chat — keine API in v1.',
           buttonText: 'Aktivitäten',
           onTap: () => onNavigate(AppNavItem.concierge),
-        ),
-      if (AppNavigation.canAccess(AppNavItem.websiteBotOverview, user))
-        _buildSummaryCard(
-          icon: Icons.chat_bubble_outline,
-          iconColor: Colors.purple,
-          title: '92 Chat-Anfragen',
-          description:
-              'Der Website-Bot hat 92 Fragen gelöst, ohne dass ein Ticket erstellt werden musste.',
-          buttonText: 'Chat-Logs',
-          onTap: () => onNavigate(AppNavItem.websiteBotOverview),
-        ),
-      if (AppNavigation.canAccess(AppNavItem.supportTickets, user))
-        _buildSummaryCard(
-          icon: Icons.confirmation_num_outlined,
-          iconColor: Colors.purple,
-          title: 'Support-Tickets',
-          description: 'Eskalierte Anfragen, die der Bot nicht selbst lösen konnte.',
-          buttonText: 'Tickets öffnen',
-          onTap: () => onNavigate(AppNavItem.supportTickets),
         ),
       if (AppNavigation.canAccess(AppNavItem.bookings, user))
         _buildSummaryCard(
           icon: Icons.minor_crash_outlined,
           iconColor: Colors.indigo,
-          title: 'Check-in Monitor',
+          title: '(Demo) Check-in Monitor',
           description:
-              '12 Kennzeichen wurden erkannt und automatisch mit Buchungen abgeglichen.',
+              'Beispieldaten für Buchungen — keine API in v1.',
           buttonText: 'Anreiseliste',
           onTap: () => onNavigate(AppNavItem.bookings),
         ),
@@ -79,9 +100,9 @@ class OverviewScreen extends StatelessWidget {
         _buildSummaryCard(
           icon: Icons.trending_up,
           iconColor: Colors.green,
-          title: 'Revenue Booster',
+          title: '(Demo) Revenue Booster',
           description:
-              'KI hat 4 Gästen proaktiv Upgrades (See-Platz/Frühstück) erfolgreich angeboten.',
+              'Beispieldaten für Abrechnung — keine API in v1.',
           buttonText: 'Umsatz-Details',
           onTap: () => onNavigate(AppNavItem.billing),
         ),
@@ -101,7 +122,7 @@ class OverviewScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'HostFlow AI hat über Nacht für Sie gearbeitet. Hier ist Ihr KI-Tagesbriefing:',
+            'HostFlow AI — API-angebundene Bereiche und Demo-Module im Überblick:',
             style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 32),
@@ -152,7 +173,7 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             title,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 18,
@@ -164,7 +185,7 @@ class OverviewScreen extends StatelessWidget {
           Expanded(
             child: Text(
               description,
-              maxLines: 3,
+              maxLines: 4,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.4),
             ),

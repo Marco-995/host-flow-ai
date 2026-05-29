@@ -42,8 +42,15 @@ class _EmailScreenState extends State<EmailScreen> {
                 const Padding(
                   padding: EdgeInsets.all(20.0),
                   child: Text(
-                    'Posteingang (KI-Kategorisiert)',
+                    'Posteingang (Demo — nicht Support-Tickets)',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Text(
+                    'Beispieldaten für E-Mail-Automation. Support-Tickets liegen unter Website Bot → Tickets.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
                   ),
                 ),
                 const Divider(height: 1),

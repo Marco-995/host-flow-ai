@@ -128,6 +128,32 @@ Manual smoke:
 - Logout → login screen again.
 - Login as **super** → dashboard; permissions include analytics/knowledge/bot config flags on `/users/me`.
 
+## Integration status (v1)
+
+| Area | Backend / API | Notes |
+|------|----------------|-------|
+| Auth, session, RBAC | API-backed | Login, refresh, logout, `GET /api/v1/users/me` |
+| Support tickets (list) | API-backed | `GET /api/v1/tickets` |
+| Ticket detail + status | API-backed | `GET` / `PATCH /api/v1/tickets/{id}` |
+| Ticket messages | API-backed | `GET` / `POST …/messages` |
+| Bot config | API-backed read-only | `GET /api/v1/bot-config/` (super) |
+| Knowledge documents | API-backed read-only | `GET /api/v1/knowledge/documents` (super) |
+| Analytics summary | API-backed | `GET /api/v1/analytics/summary?days=` (super) |
+| Website Bot overview | Hybrid | Bot config API; KPIs + chat simulator are **demo/mock** |
+| E-Mail Zentrale | **Demo** | `EmailTicket` dummy data — **not** Support Tickets |
+| Buchungen, Gäste, Rezensionen, Concierge, Unterkünfte, Abrechnung, Einstellungen | **Demo** | No cp-chatbot v1 APIs |
+
+Future work (repo-local issues): [admin write APIs](../docs/issues/future-backend-admin-write-apis.md), [chat conversation API](../docs/issues/future-chat-conversation-api.md), [Mistral abstraction](../docs/issues/future-mistral-provider-abstraction.md), [UI shell cleanup](../docs/issues/future-ui-shell-cleanup.md).
+
+## Consolidated manual smoke (full v1)
+
+With cp-chatbot running and `API_BASE_URL` set:
+
+1. **Staff:** login → Übersicht shows Support-Tickets (API) and demo cards marked *(Demo)* → open **Website Bot → Tickets / Support** → list, detail, messages (if `tickets_write`) → Buchungen/E-Mails show demo labeling → logout.
+2. **Super:** login → **Wissensdatenbank** (documents load) → **Website Bot Übersicht** (bot config API; demo KPIs + mock chat labels) → **Bot Statistiken** (analytics 7/30/90) → logout.
+3. **Restart:** login again — session and navigation unchanged.
+4. **E-Mail Zentrale (super):** confirm header says demo / not Support-Tickets.
+
 ## Validation
 
 ```bash
@@ -136,5 +162,3 @@ flutter pub get
 flutter analyze
 flutter test
 ```
-
-Existing `withOpacity` analyzer infos in `knowledge_base_screen.dart` are pre-existing and non-blocking.
