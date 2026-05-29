@@ -2,7 +2,12 @@
 
 ## Status
 
-Open
+Resolved
+
+## Resolved In
+
+- Commit: `7bdd58b`
+- Notes: Support ticket list connected to GET /api/v1/tickets.
 
 ## Priority
 
