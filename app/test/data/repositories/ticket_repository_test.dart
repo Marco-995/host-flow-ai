@@ -173,6 +173,133 @@ void main() {
     );
   });
 
+  Map<String, dynamic> messagesPayload() => {
+        'ticket_id': 7,
+        'data': [
+          {
+            'id': 1,
+            'ticket_id': 7,
+            'author_type': 'staff',
+            'author_label': 'support',
+            'visibility': 'external',
+            'body': 'Antwort',
+            'created_at': '2024-06-01T12:00:00',
+            'source': 'api_v1',
+          },
+        ],
+        'meta': {
+          'page': 1,
+          'page_size': 50,
+          'total_items': 1,
+          'total_pages': 1,
+        },
+      };
+
+  test('listMessages success', () async {
+    final client = ApiClient(
+      httpClient: MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/api/v1/tickets/7/messages');
+        return http.Response(jsonEncode(messagesPayload()), 200);
+      }),
+      baseUrl: baseUrl,
+    );
+    addTearDown(client.close);
+
+    final result = await TicketRepository(apiClient: client).listMessages(7);
+    expect(result.data, hasLength(1));
+    expect(result.data.first.body, 'Antwort');
+  });
+
+  test('listMessages sends Bearer when token set', () async {
+    final client = ApiClient(
+      httpClient: MockClient((request) async {
+        expect(request.headers['Authorization'], 'Bearer at_msg');
+        return http.Response(jsonEncode(messagesPayload()), 200);
+      }),
+      baseUrl: baseUrl,
+    )..getAccessToken = () => 'at_msg';
+    addTearDown(client.close);
+
+    await TicketRepository(apiClient: client).listMessages(7);
+  });
+
+  test('listMessages 404 throws ApiException', () async {
+    final client = ApiClient(
+      httpClient: MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'code': 'TICKET_NOT_FOUND',
+            'message': 'not found',
+          }),
+          404,
+        );
+      }),
+      baseUrl: baseUrl,
+    );
+    addTearDown(client.close);
+
+    expect(
+      () => TicketRepository(apiClient: client).listMessages(99999),
+      throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 404)),
+    );
+  });
+
+  test('postMessage sends correct JSON and parses 201', () async {
+    final client = ApiClient(
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/tickets/7/messages');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['body'], 'Wir melden uns.');
+        expect(body['visibility'], 'external');
+        return http.Response(
+          jsonEncode({
+            'id': 42,
+            'ticket_id': 7,
+            'author_type': 'staff',
+            'author_label': 'support',
+            'visibility': 'external',
+            'body': 'Wir melden uns.',
+            'created_at': '2024-06-01T12:00:00',
+            'source': 'api_v1',
+          }),
+          201,
+        );
+      }),
+      baseUrl: baseUrl,
+    );
+    addTearDown(client.close);
+
+    final message = await TicketRepository(apiClient: client).postMessage(
+      7,
+      body: 'Wir melden uns.',
+    );
+    expect(message.id, 42);
+    expect(message.authorType, TicketMessageAuthorType.staff);
+  });
+
+  test('postMessage 400 throws ApiException', () async {
+    final client = ApiClient(
+      httpClient: MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'code': 'VALIDATION_ERROR',
+            'message': 'Body required',
+          }),
+          400,
+        );
+      }),
+      baseUrl: baseUrl,
+    );
+    addTearDown(client.close);
+
+    expect(
+      () => TicketRepository(apiClient: client).postMessage(7, body: 'x'),
+      throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 400)),
+    );
+  });
+
   test('listTickets non-2xx throws ApiException', () async {
     final client = ApiClient(
       httpClient: MockClient((request) async {

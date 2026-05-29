@@ -164,4 +164,100 @@ void main() {
     expect(TicketStatus.fromAllowedAction('reopen'), TicketStatus.open);
     expect(TicketStatus.fromAllowedAction('archive'), TicketStatus.archived);
   });
+
+  group('TicketMessage', () {
+    Map<String, dynamic> messageJson({
+      int id = 1,
+      String authorType = 'staff',
+      String visibility = 'external',
+    }) =>
+        {
+          'id': id,
+          'ticket_id': 7,
+          'author_type': authorType,
+          'author_label': 'support',
+          'visibility': visibility,
+          'body': 'Antworttext',
+          'created_at': '2024-06-01T12:00:00',
+          'source': 'api_v1',
+        };
+
+    test('parses snapshot message with negative id', () {
+      final msg = TicketMessage.fromJson(
+        messageJson(id: -1, authorType: 'guest', visibility: 'external')
+          ..['source'] = 'context_snapshot',
+      );
+      expect(msg.id, -1);
+      expect(msg.authorType, TicketMessageAuthorType.guest);
+      expect(msg.isSnapshot, isTrue);
+    });
+
+    test('parses staff message', () {
+      final msg = TicketMessage.fromJson(messageJson());
+      expect(msg.authorType, TicketMessageAuthorType.staff);
+      expect(msg.visibility, TicketMessageVisibility.external);
+      expect(msg.body, 'Antworttext');
+      expect(msg.createdAtParsed, isNotNull);
+    });
+
+    test('unknown visibility and author type are safe', () {
+      final msg = TicketMessage.fromJson(
+        messageJson(authorType: 'alien', visibility: 'secret'),
+      );
+      expect(msg.authorType, TicketMessageAuthorType.unknown);
+      expect(msg.visibility, TicketMessageVisibility.unknown);
+    });
+  });
+
+  group('TicketMessagesResponse', () {
+    test('parses list with meta', () {
+      final response = TicketMessagesResponse.fromJson({
+        'ticket_id': 7,
+        'data': [
+          {
+            'id': -1,
+            'ticket_id': 7,
+            'author_type': 'guest',
+            'author_label': 'Gast',
+            'visibility': 'external',
+            'body': 'Hallo',
+            'created_at': '2024-06-01T10:00:00',
+            'source': 'context_snapshot',
+          },
+        ],
+        'meta': {
+          'page': 1,
+          'page_size': 50,
+          'total_items': 1,
+          'total_pages': 1,
+        },
+      });
+      expect(response.ticketId, 7);
+      expect(response.data, hasLength(1));
+      expect(response.meta.totalItems, 1);
+    });
+
+    test('parses empty data', () {
+      final response = TicketMessagesResponse.fromJson({
+        'ticket_id': 7,
+        'data': [],
+        'meta': {
+          'page': 1,
+          'page_size': 50,
+          'total_items': 0,
+          'total_pages': 1,
+        },
+      });
+      expect(response.data, isEmpty);
+    });
+  });
+
+  test('TicketMessageCreateRequest serializes body and visibility', () {
+    final body = const TicketMessageCreateRequest(
+      body: 'Hallo',
+      visibility: TicketMessageVisibility.internal,
+    ).toJson();
+    expect(body['body'], 'Hallo');
+    expect(body['visibility'], 'internal');
+  });
 }

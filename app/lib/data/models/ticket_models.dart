@@ -204,6 +204,177 @@ class TicketListItem {
   }
 }
 
+enum TicketMessageVisibility {
+  external,
+  internal,
+  unknown;
+
+  static TicketMessageVisibility fromString(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'external':
+        return TicketMessageVisibility.external;
+      case 'internal':
+        return TicketMessageVisibility.internal;
+      default:
+        return TicketMessageVisibility.unknown;
+    }
+  }
+
+  String? get apiValue {
+    return switch (this) {
+      TicketMessageVisibility.external => 'external',
+      TicketMessageVisibility.internal => 'internal',
+      TicketMessageVisibility.unknown => null,
+    };
+  }
+
+  String get labelDe {
+    return switch (this) {
+      TicketMessageVisibility.external => 'Extern',
+      TicketMessageVisibility.internal => 'Intern',
+      TicketMessageVisibility.unknown => 'Unbekannt',
+    };
+  }
+}
+
+enum TicketMessageAuthorType {
+  guest,
+  bot,
+  staff,
+  system,
+  unknown;
+
+  static TicketMessageAuthorType fromString(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'guest':
+        return TicketMessageAuthorType.guest;
+      case 'bot':
+        return TicketMessageAuthorType.bot;
+      case 'staff':
+        return TicketMessageAuthorType.staff;
+      case 'system':
+        return TicketMessageAuthorType.system;
+      default:
+        return TicketMessageAuthorType.unknown;
+    }
+  }
+
+  String get labelDe {
+    return switch (this) {
+      TicketMessageAuthorType.guest => 'Gast',
+      TicketMessageAuthorType.bot => 'Bot',
+      TicketMessageAuthorType.staff => 'Mitarbeiter',
+      TicketMessageAuthorType.system => 'System',
+      TicketMessageAuthorType.unknown => 'Unbekannt',
+    };
+  }
+}
+
+class TicketMessage {
+  const TicketMessage({
+    required this.id,
+    required this.ticketId,
+    required this.authorType,
+    required this.authorLabel,
+    required this.visibility,
+    required this.body,
+    required this.createdAtRaw,
+    required this.source,
+  });
+
+  final int id;
+  final int ticketId;
+  final TicketMessageAuthorType authorType;
+  final String authorLabel;
+  final TicketMessageVisibility visibility;
+  final String body;
+  final String createdAtRaw;
+  final String source;
+
+  DateTime? get createdAtParsed => DateTime.tryParse(createdAtRaw);
+
+  bool get isSnapshot =>
+      id < 0 || source.trim().toLowerCase() == 'context_snapshot';
+
+  String get displayAuthor {
+    if (authorLabel.trim().isNotEmpty) return authorLabel;
+    return authorType.labelDe;
+  }
+
+  factory TicketMessage.fromJson(Map<String, dynamic> json) {
+    return TicketMessage(
+      id: _asInt(json['id']),
+      ticketId: _asInt(json['ticket_id']),
+      authorType: TicketMessageAuthorType.fromString(
+        json['author_type'] as String? ?? '',
+      ),
+      authorLabel: json['author_label'] as String? ?? '',
+      visibility: TicketMessageVisibility.fromString(
+        json['visibility'] as String? ?? '',
+      ),
+      body: json['body'] as String? ?? '',
+      createdAtRaw: json['created_at'] as String? ?? '',
+      source: json['source'] as String? ?? '',
+    );
+  }
+}
+
+class TicketMessagesResponse {
+  const TicketMessagesResponse({
+    required this.ticketId,
+    required this.data,
+    required this.meta,
+  });
+
+  final int ticketId;
+  final List<TicketMessage> data;
+  final PaginationMeta meta;
+
+  factory TicketMessagesResponse.fromJson(Map<String, dynamic> json) {
+    final rawList = json['data'];
+    final items = <TicketMessage>[];
+    if (rawList is List) {
+      for (final entry in rawList) {
+        if (entry is Map<String, dynamic>) {
+          items.add(TicketMessage.fromJson(entry));
+        }
+      }
+    }
+
+    final metaJson = json['meta'];
+    if (metaJson is! Map<String, dynamic>) {
+      throw const FormatException('TicketMessagesResponse requires meta object.');
+    }
+
+    return TicketMessagesResponse(
+      ticketId: _asInt(json['ticket_id']),
+      data: items,
+      meta: PaginationMeta.fromJson(metaJson),
+    );
+  }
+}
+
+class TicketMessageCreateRequest {
+  const TicketMessageCreateRequest({
+    required this.body,
+    required this.visibility,
+  });
+
+  final String body;
+  final TicketMessageVisibility visibility;
+
+  Map<String, dynamic> toJson() {
+    final visibilityValue = visibility.apiValue;
+    if (visibilityValue == null) {
+      throw ArgumentError('Cannot POST message with unknown visibility.');
+    }
+    return {
+      'body': body,
+      'visibility': visibilityValue,
+    };
+  }
+}
+
 class TicketListResponse {
   const TicketListResponse({
     required this.data,

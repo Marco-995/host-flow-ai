@@ -64,6 +64,15 @@ With cp-chatbot running and a user that has ticket permissions:
 2. Change status via dropdown or action chip (requires `tickets_write`; `PATCH /api/v1/tickets/{id}`).
 3. Use back to return; the list reloads if the status changed.
 
+## Support ticket messages (Step 6)
+
+On `TicketDetailScreen` (after Step 5):
+
+1. Message thread loads from `GET /api/v1/tickets/{id}/messages` (independent of detail load errors in the messages section only).
+2. Legacy snapshot lines and staff messages appear in **Nachrichtenverlauf**.
+3. With `tickets_write`, use the reply composer: **Sichtbar für Gast** (`external`) or **Interne Notiz** (`internal`); sends `POST /api/v1/tickets/{id}/messages`.
+4. On success the composer clears and the new message appears in the list (no full-screen reload).
+
 ## RBAC navigation (Step 3)
 
 After login, menu visibility depends on role and permissions from `GET /api/v1/users/me`:

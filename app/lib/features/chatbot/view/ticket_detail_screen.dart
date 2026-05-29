@@ -8,6 +8,8 @@ import '../../../data/repositories/ticket_repository.dart';
 
 enum _DetailPhase { loading, error, data }
 
+enum _MessagesPhase { loading, error, data }
+
 class TicketDetailScreen extends StatefulWidget {
   const TicketDetailScreen({
     super.key,
@@ -33,8 +35,21 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   var _statusChanged = false;
   var _updatingStatus = false;
 
+  _MessagesPhase _messagesPhase = _MessagesPhase.loading;
+  List<TicketMessage> _messages = [];
+  String? _messagesError;
+  var _submittingMessage = false;
+  TicketMessageVisibility _composerVisibility = TicketMessageVisibility.external;
+  final _replyController = TextEditingController();
+
   TicketRepository get _repository =>
       widget.repository ?? context.read<TicketRepository>();
+
+  @override
+  void dispose() {
+    _replyController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -60,6 +75,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
         _detail = detail;
         _phase = _DetailPhase.data;
       });
+      await _loadMessages();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -74,6 +90,93 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
         _phase = _DetailPhase.error;
       });
     }
+  }
+
+  Future<void> _loadMessages() async {
+    if (!mounted || _phase != _DetailPhase.data) return;
+    setState(() {
+      _messagesPhase = _MessagesPhase.loading;
+      _messagesError = null;
+    });
+
+    try {
+      final response = await _repository.listMessages(widget.ticketId);
+      if (!mounted) return;
+      setState(() {
+        _messages = response.data;
+        _messagesPhase = _MessagesPhase.data;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _messagesError = _messageForMessagesException(e);
+        _messagesPhase = _MessagesPhase.error;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _messagesError = e.toString();
+        _messagesPhase = _MessagesPhase.error;
+      });
+    }
+  }
+
+  String _messageForMessagesException(ApiException e) {
+    if (e.statusCode == 404) {
+      return 'Nachrichten nicht gefunden.';
+    }
+    if (e.statusCode == 403) {
+      return 'Keine Berechtigung, Nachrichten zu laden.';
+    }
+    return e.error.message;
+  }
+
+  Future<void> _submitMessage() async {
+    final body = _replyController.text.trim();
+    if (body.isEmpty || _submittingMessage || !widget.canWrite) return;
+
+    setState(() => _submittingMessage = true);
+
+    try {
+      final created = await _repository.postMessage(
+        widget.ticketId,
+        body: body,
+        visibility: _composerVisibility,
+      );
+      if (!mounted) return;
+      setState(() {
+        _replyController.clear();
+        _submittingMessage = false;
+        if (_messagesPhase == _MessagesPhase.data) {
+          _messages = [..._messages, created];
+        } else {
+          _messages = [created];
+          _messagesPhase = _MessagesPhase.data;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nachricht gesendet')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _submittingMessage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.error.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submittingMessage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  String _messageCountLabel(TicketDetail detail) {
+    if (_messagesPhase == _MessagesPhase.data) {
+      return '${_messages.length}';
+    }
+    return '${detail.messageCount}';
   }
 
   String _messageForLoadException(ApiException e) {
@@ -133,7 +236,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
         elevation: 0,
         leading: BackButton(onPressed: _popWithResult),
         title: Text('Ticket #${widget.ticketId}'),
-        bottom: _updatingStatus
+        bottom: _updatingStatus || _submittingMessage
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(4),
                 child: LinearProgressIndicator(),
@@ -218,10 +321,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             'Erstellt',
             _formatTimestamp(detail.createdAtRaw, detail.createdAtParsed),
           ),
-          _metaRow(
-            'Nachrichten',
-            '${detail.messageCount} — Nachrichtenverlauf folgt in Step 6',
-          ),
+          _metaRow('Nachrichten', _messageCountLabel(detail)),
           const SizedBox(height: 24),
           const Text(
             'Fragen',
@@ -251,6 +351,12 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 child: Text('${q.index}. ${q.text}'),
               ),
           const SizedBox(height: 24),
+          _buildMessagesSection(),
+          if (widget.canWrite) ...[
+            const SizedBox(height: 16),
+            _buildReplyComposer(),
+          ],
+          const SizedBox(height: 24),
           if (widget.canWrite) ...[
             const Text(
               'Status ändern',
@@ -268,6 +374,203 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMessagesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Nachrichtenverlauf',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF212121),
+          ),
+        ),
+        const SizedBox(height: 12),
+        switch (_messagesPhase) {
+          _MessagesPhase.loading => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          _MessagesPhase.error => _buildMessagesErrorState(),
+          _MessagesPhase.data => _buildMessagesList(),
+        },
+      ],
+    );
+  }
+
+  Widget _buildMessagesErrorState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red.shade300),
+          const SizedBox(height: 8),
+          Text(
+            _messagesError ?? 'Nachrichten konnten nicht geladen werden.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: _loadMessages,
+            child: const Text('Erneut versuchen'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessagesList() {
+    if (_messages.isEmpty) {
+      return const Text(
+        'Noch keine Nachrichten vorhanden.',
+        style: TextStyle(color: Colors.grey),
+      );
+    }
+
+    return Column(
+      children: [
+        for (final message in _messages) _buildMessageCard(message),
+      ],
+    );
+  }
+
+  Widget _buildMessageCard(TicketMessage message) {
+    final isInternal = message.visibility == TicketMessageVisibility.internal;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isInternal ? const Color(0xFFFFF8E1) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  message.displayAuthor,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              Text(
+                message.visibility.labelDe,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isInternal ? const Color(0xFFE65100) : Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _formatTimestamp(message.createdAtRaw, message.createdAtParsed),
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          if (message.isSnapshot) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Import aus Chat-Verlauf',
+              style: TextStyle(color: Colors.grey, fontSize: 11),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            message.body,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReplyComposer() {
+    final canSubmit =
+        _replyController.text.trim().isNotEmpty && !_submittingMessage;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Antwort',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _replyController,
+          minLines: 2,
+          maxLines: 4,
+          enabled: !_submittingMessage,
+          decoration: const InputDecoration(
+            hintText: 'Antwort eingeben…',
+            border: OutlineInputBorder(),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            const Text('Sichtbarkeit:', style: TextStyle(fontSize: 13)),
+            const SizedBox(width: 8),
+            DropdownButton<TicketMessageVisibility>(
+              value: _composerVisibility,
+              items: const [
+                DropdownMenuItem(
+                  value: TicketMessageVisibility.external,
+                  child: Text('Sichtbar für Gast'),
+                ),
+                DropdownMenuItem(
+                  value: TicketMessageVisibility.internal,
+                  child: Text('Interne Notiz'),
+                ),
+              ],
+              onChanged: _submittingMessage
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() => _composerVisibility = value);
+                      }
+                    },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton(
+            onPressed: canSubmit ? _submitMessage : null,
+            child: _submittingMessage
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Senden'),
+          ),
+        ),
+      ],
     );
   }
 
