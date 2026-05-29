@@ -13,13 +13,13 @@ GitHub Issues are not used for this track. Each step is a Markdown file in this 
 | 1 | App API Foundation | `ApiClient`, `ApiException`, `HealthRepository`, `AppConfig` |
 | 2 | Auth Foundation | Login, refresh, logout, `SessionController`, secure tokens |
 | 3 | RBAC Navigation | `AppNavItem`, `AppNavigation`, sidebar guard, `ForbiddenPlaceholder` |
+| 4 | Support Tickets — Ticket List API | `TicketRepository`, `SupportTicketsScreen`, list states |
+| 5 | Ticket Detail + Status Update | `TicketDetailScreen`, GET/PATCH ticket APIs |
 
 ## Open steps (implementation order)
 
 | Step | File | Priority | Depends on |
 |------|------|----------|------------|
-| 4 | [step-04-ticket-list-api.md](./step-04-ticket-list-api.md) | P0 | Step 2, 3 |
-| 5 | [step-05-ticket-detail-status.md](./step-05-ticket-detail-status.md) | P0 | Step 4 |
 | 6 | [step-06-ticket-messages.md](./step-06-ticket-messages.md) | P0 | Step 5 |
 | 7 | [step-07-agent-config-read.md](./step-07-agent-config-read.md) | P1 | Step 2, 3 |
 | 8 | [step-08-analytics-summary.md](./step-08-analytics-summary.md) | P1 | Step 2, 3 |
