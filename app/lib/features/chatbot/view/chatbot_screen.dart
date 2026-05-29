@@ -1,7 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/network/api_error.dart';
+import '../../../core/session/session_controller.dart';
+import '../../../data/models/bot_config_models.dart';
+import '../../../data/repositories/agent_repository.dart';
+
+enum _ConfigPhase { loading, error, data }
+
+void _showComingSoon(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Demnächst verfügbar (nur Lesezugriff in v1).'),
+    ),
+  );
+}
 
 class WebsiteBotScreen extends StatefulWidget {
-  const WebsiteBotScreen({super.key});
+  const WebsiteBotScreen({super.key, this.repository});
+
+  final AgentRepository? repository;
 
   @override
   State<WebsiteBotScreen> createState() => _WebsiteBotScreenState();
@@ -11,12 +29,86 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'isBot': true,
-      'text': 'Willkommen auf unserer Website! Hast du Fragen zu unseren Stellplätzen, Preisen oder möchtest du direkt buchen?'
+  _ConfigPhase _configPhase = _ConfigPhase.loading;
+  BotConfiguration? _botConfig;
+  String? _configError;
+  var _loadScheduled = false;
+
+  final List<Map<String, dynamic>> _messages = [];
+
+  static const _defaultWelcome =
+      'Willkommen auf unserer Website! Hast du Fragen zu unseren Stellplätzen, Preisen oder möchtest du direkt buchen?';
+
+  AgentRepository get _repository =>
+      widget.repository ?? context.read<AgentRepository>();
+
+  @override
+  void initState() {
+    super.initState();
+    _messages.add({'isBot': true, 'text': _defaultWelcome});
+  }
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loadScheduled) {
+      _loadScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadBotConfig());
     }
-  ];
+  }
+
+  Future<void> _loadBotConfig() async {
+    if (!mounted) return;
+
+    final user = context.read<SessionController>().currentUser;
+    if (user == null || !user.permissions.canReadBotConfig) {
+      setState(() {
+        _configPhase = _ConfigPhase.error;
+        _configError = 'Keine Berechtigung, Bot-Konfiguration zu laden.';
+      });
+      return;
+    }
+
+    setState(() {
+      _configPhase = _ConfigPhase.loading;
+      _configError = null;
+    });
+
+    try {
+      final config = await _repository.getBotConfig();
+      if (!mounted) return;
+      setState(() {
+        _botConfig = config;
+        _configPhase = _ConfigPhase.data;
+        if (_messages.length == 1 &&
+            _messages.first['isBot'] == true &&
+            config.welcomeMessage.isNotEmpty) {
+          _messages[0] = {'isBot': true, 'text': config.welcomeMessage};
+        }
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _configError = e.statusCode == 403
+            ? 'Keine Berechtigung, Bot-Konfiguration zu laden.'
+            : e.error.message;
+        _configPhase = _ConfigPhase.error;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _configError = e.toString();
+        _configPhase = _ConfigPhase.error;
+      });
+    }
+  }
 
   void _sendMessage(String text) {
     if (text.trim().isEmpty) return;
@@ -29,6 +121,7 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
     _scrollToBottom();
 
     Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
       setState(() {
         _messages.add({'isBot': true, 'text': _getMockBotResponse(text)});
       });
@@ -42,7 +135,9 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
       return 'Ja, Hunde sind bei uns herzlich willkommen! Auf den Stellplätzen am Waldrand (Kategorie B) sind sie erlaubt. Der Aufpreis beträgt 5€ pro Nacht. Soll ich prüfen, ob dort etwas frei ist?';
     } else if (lowerInput.contains('storno') || lowerInput.contains('absagen')) {
       return 'Du kannst deine Buchung bis zu 14 Tage vor Anreise komplett kostenlos stornieren. Danach berechnen wir 50% des Preises.';
-    } else if (lowerInput.contains('buchen') || lowerInput.contains('frei') || lowerInput.contains('reservieren')) {
+    } else if (lowerInput.contains('buchen') ||
+        lowerInput.contains('frei') ||
+        lowerInput.contains('reservieren')) {
       return 'Gerne helfe ich dir bei der Buchung! Für welchen Zeitraum suchst du einen Platz und mit was reist du an (Zelt, Wohnwagen, Wohnmobil)?';
     }
     return 'Gute Frage! Ich lerne noch dazu. Bitte hinterlasse deine E-Mail, damit ein menschlicher Kollege dir darauf antworten kann.';
@@ -65,7 +160,6 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- LINKE SEITE: Setup & Performance ---
         Expanded(
           flex: 3,
           child: Column(
@@ -73,14 +167,13 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
             children: [
               _buildPerformanceCard(),
               const SizedBox(height: 24),
+              _buildBotConfigCard(),
+              const SizedBox(height: 24),
               _buildTrainingCard(),
             ],
           ),
         ),
-
         const SizedBox(width: 32),
-
-        // --- RECHTE SEITE: Der Web-Simulator ---
         Expanded(
           flex: 2,
           child: _buildWebSimulator(),
@@ -88,8 +181,6 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
       ],
     );
   }
-
-  // --- UI WIDGETS FÜR DIE LINKE SEITE ---
 
   Widget _buildPerformanceCard() {
     return Container(
@@ -102,17 +193,47 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Performance (Letzte 7 Tage)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Performance (Letzte 7 Tage)',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
-          const Text('So erfolgreich arbeitet der Bot auf Ihrer Website.', style: TextStyle(color: Colors.grey)),
+          const Text(
+            'Demo-KPIs — Analytics-API folgt in Step 8.',
+            style: TextStyle(color: Colors.grey),
+          ),
           const SizedBox(height: 24),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
             children: [
-              _buildStatMetric('Chat-Sitzungen', '342', Icons.chat_bubble_outline, Colors.blue),
-              const SizedBox(width: 24),
-              _buildStatMetric('Support-Tickets gespart', '215', Icons.shield_outlined, Colors.green),
-              const SizedBox(width: 24),
-              _buildStatMetric('Generierte Leads/Buchungen', '48', Icons.shopping_cart_outlined, Colors.orange),
+              SizedBox(
+                width: 180,
+                child: _buildStatMetric(
+                  'Chat-Sitzungen',
+                  '342',
+                  Icons.chat_bubble_outline,
+                  Colors.blue,
+                ),
+              ),
+              SizedBox(
+                width: 180,
+                child: _buildStatMetric(
+                  'Support-Tickets gespart',
+                  '215',
+                  Icons.shield_outlined,
+                  Colors.green,
+                ),
+              ),
+              SizedBox(
+                width: 180,
+                child: _buildStatMetric(
+                  'Generierte Leads/Buchungen',
+                  '48',
+                  Icons.shopping_cart_outlined,
+                  Colors.orange,
+                ),
+              ),
             ],
           ),
         ],
@@ -121,25 +242,90 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
   }
 
   Widget _buildStatMetric(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 12),
-            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 12),
+          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBotConfigCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bot-Konfiguration (API)',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          switch (_configPhase) {
+            _ConfigPhase.loading => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            _ConfigPhase.error => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _configError ?? 'Konfiguration konnte nicht geladen werden.',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _loadBotConfig,
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
+              ),
+            _ConfigPhase.data => _buildBotConfigContent(_botConfig!),
+          },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBotConfigContent(BotConfiguration config) {
+    final promptPreview = config.systemPrompt.length > 200
+        ? '${config.systemPrompt.substring(0, 200)}…'
+        : config.systemPrompt;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Welcome Message', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(config.welcomeMessage.isNotEmpty ? config.welcomeMessage : '—'),
+        const SizedBox(height: 16),
+        const Text('System Prompt', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(
+          promptPreview,
+          style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+        ),
+      ],
     );
   }
 
@@ -154,52 +340,29 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Wissensdatenbank (Training)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Wissensdatenbank (Training)',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
-          const Text('Diese Daten nutzt der Bot, um Website-Besuchern zu antworten.', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 20),
-          _buildTrainingSource('Website Crawler', 'Zuletzt gesynct: Heute, 08:30 Uhr', true),
-          const Divider(),
-          _buildTrainingSource('PDF: Preisliste_2024.pdf', 'Hochgeladen: 01.03.2024', true),
-          const Divider(),
-          _buildTrainingSource('PDF: Platzordnung_AGB.pdf', 'Hochgeladen: 15.01.2024', true),
+          const Text(
+            'Dokumente werden in der Wissensdatenbank verwaltet (nur Lesezugriff in v1).',
+            style: TextStyle(color: Colors.grey),
+          ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () => _showComingSoon(context),
             icon: const Icon(Icons.upload_file),
             label: const Text('Neues Dokument hochladen'),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF3B6790),
               side: const BorderSide(color: Color(0xFF3B6790)),
             ),
-          )
+          ),
         ],
       ),
     );
   }
-
-  Widget _buildTrainingSource(String title, String subtitle, bool isActive) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(Icons.check, color: isActive ? Colors.green : Colors.grey, size: 16),
-      ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      trailing: IconButton(
-        icon: const Icon(Icons.sync, color: Colors.grey),
-        onPressed: () {},
-        tooltip: 'Neu synchronisieren',
-      ),
-    );
-  }
-
-  // --- UI WIDGET FÜR DIE RECHTE SEITE (Web Widget Simulator) ---
 
   Widget _buildWebSimulator() {
     return Container(
@@ -213,12 +376,14 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
         children: [
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text('Website-Widget Vorschau', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+            child: Text(
+              'Website-Widget Vorschau',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
           ),
           const SizedBox(height: 24),
-          // Das "Chat Widget" wie man es von Webseiten kennt
           Container(
-            width: 360, // Typische Breite für Web-Widgets
+            width: 360,
             height: 520,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -229,49 +394,46 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
             ),
             child: Column(
               children: [
-                // Header des Widgets
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: const BoxDecoration(
                     color: Color(0xFF3B6790),
-                    borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Stack(
-                        children: [
-                          const CircleAvatar(
-                            backgroundColor: Colors.white24,
-                            child: Icon(Icons.support_agent, color: Colors.white),
-                          ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: Colors.greenAccent,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: const Color(0xFF3B6790), width: 2),
-                              ),
-                            ),
-                          )
-                        ],
+                      const CircleAvatar(
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.support_agent, color: Colors.white),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Camping Support', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('Online - Antwortet sofort', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Camping Support',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Online - Antwortet sofort',
+                              style: TextStyle(color: Colors.white70, fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-
-                // Chatverlauf
                 Expanded(
                   child: ListView.builder(
                     controller: _scrollController,
@@ -279,12 +441,10 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
                       final msg = _messages[index];
-                      return _buildChatBubble(msg['text'], msg['isBot']);
+                      return _buildChatBubble(msg['text'] as String, msg['isBot'] as bool);
                     },
                   ),
                 ),
-
-                // Chipeingaben für schnelle Fragen
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: SingleChildScrollView(
@@ -301,8 +461,6 @@ class _WebsiteBotScreenState extends State<WebsiteBotScreen> {
                   ),
                 ),
                 const Divider(height: 1),
-
-                // Eingabefeld
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(

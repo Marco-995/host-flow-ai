@@ -73,6 +73,16 @@ On `TicketDetailScreen` (after Step 5):
 3. With `tickets_write`, use the reply composer: **Sichtbar für Gast** (`external`) or **Interne Notiz** (`internal`); sends `POST /api/v1/tickets/{id}/messages`.
 4. On success the composer clears and the new message appears in the list (no full-screen reload).
 
+## Agent config read (Step 7)
+
+Super only (sidebar + backend):
+
+1. **Wissensdatenbank** loads `GET /api/v1/knowledge/documents` and shows each document as a list row with filename and content preview (no full-text or expand view in Step 7).
+2. **Website Bot Übersicht** loads `GET /api/v1/bot-config/` (welcome message + system prompt, read-only).
+3. Mock chat simulator uses API welcome message when config loads; replies stay mock (no chat API).
+4. Sync, upload, ingest, and RAG test controls are disabled or show **Demnächst verfügbar (nur Lesezugriff in v1).**
+5. Staff do not see knowledge or website bot overview in navigation.
+
 ## RBAC navigation (Step 3)
 
 After login, menu visibility depends on role and permissions from `GET /api/v1/users/me`:

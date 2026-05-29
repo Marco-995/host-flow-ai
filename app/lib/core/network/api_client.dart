@@ -84,6 +84,23 @@ class ApiClient {
     return _handleJsonResponse(response);
   }
 
+  /// GET request returning a JSON array (root-level list responses).
+  Future<List<dynamic>> getJsonList(
+    String path, {
+    Map<String, String>? query,
+    bool authenticated = false,
+    bool skipAuthRetry = false,
+  }) async {
+    final response = await _send(
+      path: path,
+      query: query,
+      authenticated: authenticated,
+      skipAuthRetry: skipAuthRetry,
+      send: (uri, headers) => _httpClient.get(uri, headers: headers),
+    );
+    return _handleJsonListResponse(response);
+  }
+
   /// POST request returning a JSON object map.
   Future<Map<String, dynamic>> postJson(
     String path,
@@ -196,6 +213,30 @@ class ApiClient {
         }
         throw ApiException.invalidJson(
           'Expected JSON object, got ${decoded.runtimeType}.',
+        );
+      } on FormatException catch (e) {
+        throw ApiException.invalidJson(e.message);
+      }
+    }
+
+    throw ApiException.fromResponse(statusCode: status, body: body);
+  }
+
+  List<dynamic> _handleJsonListResponse(http.Response response) {
+    final status = response.statusCode;
+    final body = response.body;
+
+    if (status >= 200 && status < 300) {
+      if (body.trim().isEmpty) {
+        throw ApiException.invalidJson('Empty response body.');
+      }
+      try {
+        final decoded = jsonDecode(body);
+        if (decoded is List<dynamic>) {
+          return decoded;
+        }
+        throw ApiException.invalidJson(
+          'Expected JSON array, got ${decoded.runtimeType}.',
         );
       } on FormatException catch (e) {
         throw ApiException.invalidJson(e.message);

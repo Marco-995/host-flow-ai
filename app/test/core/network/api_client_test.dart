@@ -271,6 +271,51 @@ void main() {
       addTearDown(client.close);
       await client.getJson('/api/v1/health');
     });
+
+    test('getJsonList parses JSON array', () async {
+      mockClient = MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/api/v1/knowledge/documents');
+        return http.Response(
+          jsonEncode([
+            {'filename': 'a.md', 'content': 'Hello'},
+          ]),
+          200,
+        );
+      });
+      apiClient = ApiClient(httpClient: mockClient, baseUrl: baseUrl);
+
+      final list = await apiClient.getJsonList('/api/v1/knowledge/documents');
+      expect(list, hasLength(1));
+      expect((list.first as Map)['filename'], 'a.md');
+    });
+
+    test('getJsonList non-array 2xx throws invalid_json', () async {
+      mockClient = MockClient((_) async {
+        return http.Response(jsonEncode({'data': []}), 200);
+      });
+      apiClient = ApiClient(httpClient: mockClient, baseUrl: baseUrl);
+
+      await expectLater(
+        apiClient.getJsonList('/api/v1/knowledge/documents'),
+        throwsA(isA<ApiException>().having((e) => e.error.code, 'code', 'invalid_json')),
+      );
+    });
+
+    test('getJsonList non-2xx throws ApiException', () async {
+      mockClient = MockClient((_) async {
+        return http.Response(
+          jsonEncode({'code': 'AUTH_FORBIDDEN', 'message': 'Forbidden'}),
+          403,
+        );
+      });
+      apiClient = ApiClient(httpClient: mockClient, baseUrl: baseUrl);
+
+      await expectLater(
+        apiClient.getJsonList('/api/v1/knowledge/documents'),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 403)),
+      );
+    });
   });
 
   group('HealthRepository', () {
