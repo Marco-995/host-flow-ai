@@ -2,7 +2,12 @@
 
 ## Status
 
-Open
+Resolved
+
+## Resolved In
+
+- Commit: `bdda779`
+- Notes: Added TicketDetailScreen with GET/PATCH support and status updates.
 
 ## Priority
 
