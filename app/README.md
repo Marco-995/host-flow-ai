@@ -83,6 +83,16 @@ Super only (sidebar + backend):
 4. Sync, upload, ingest, and RAG test controls are disabled or show **Demnächst verfügbar (nur Lesezugriff in v1).**
 5. Staff do not see knowledge or website bot overview in navigation.
 
+## Analytics summary (Step 8)
+
+Super only (sidebar + backend):
+
+1. **Bot Statistiken** loads `GET /api/v1/analytics/summary` with days selector **7 / 30 / 90** (default 30).
+2. Summary cards show interactions, sessions, fallbacks, response time, and optional token usage.
+3. Top categories and usage-by-day appear as simple lists when data exists.
+4. Empty period shows **Noch keine Analytics-Daten im gewählten Zeitraum.** (no fake metrics).
+5. Staff do not see Bot Statistiken in navigation.
+
 ## RBAC navigation (Step 3)
 
 After login, menu visibility depends on role and permissions from `GET /api/v1/users/me`:
