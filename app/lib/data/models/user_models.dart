@@ -18,6 +18,12 @@ class UserPermissions {
   final bool botConfigRead;
   final bool botConfigWrite;
 
+  bool get canReadTickets => ticketsRead;
+  bool get canWriteTickets => ticketsWrite;
+  bool get canReadAnalytics => analyticsRead;
+  bool get canReadKnowledge => knowledgeRead;
+  bool get canReadBotConfig => botConfigRead;
+
   factory UserPermissions.fromJson(Map<String, dynamic> json) {
     return UserPermissions(
       ticketsRead: json['tickets_read'] as bool? ?? false,

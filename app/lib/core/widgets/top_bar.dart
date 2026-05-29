@@ -59,7 +59,21 @@ class _TopBarState extends State<TopBar> {
           ),
           const Spacer(),
 
-          // Das dynamische Datum
+          Consumer<SessionController>(
+            builder: (context, session, _) {
+              final user = session.currentUser;
+              if (user == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Text(
+                  '${user.username} (${user.role})',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            },
+          ),
+
           Text(
             _formattedDate,
             style: const TextStyle(color: Colors.grey, fontSize: 14),

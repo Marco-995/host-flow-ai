@@ -4,16 +4,19 @@ import 'package:host_flow/features/bookings/view/bookings_screen.dart';
 import 'package:host_flow/features/guests/view/guests_screen.dart';
 import 'package:host_flow/features/billing/view/billing_screen.dart';
 import 'package:host_flow/features/settings/view/settings_screen.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/navigation/app_navigation.dart';
+import '../../../core/session/session_controller.dart';
+import '../../../data/models/user_models.dart';
 import '../../../core/widgets/app_sidebar.dart';
+import '../../../core/widgets/forbidden_placeholder.dart';
 import '../../../core/widgets/top_bar.dart';
 import '../../chatbot/view/chatbot_screen.dart';
 import '../../digital_concierge/view/concierge_screen.dart';
 import '../../overview/view/overview_screen.dart';
 import '../../email_automation/view/email_screen.dart';
-import '../../reviews/view/reviews_screen.dart'; // NEU: Import für Rezensionen
-
-// NEU: Die 3 Bot-Screens importieren
+import '../../reviews/view/reviews_screen.dart';
 import '../../chatbot/view/support_tickets_screen.dart';
 import '../../chatbot/view/knowledge_base_screen.dart';
 import '../../chatbot/view/bot_statistics_screen.dart';
@@ -26,46 +29,99 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _selectedIndex = 0;
+  AppNavItem _selectedItem = AppNavItem.overview;
+  String? _trackedUserId;
+  bool _selectionSyncScheduled = false;
+  SessionController? _session;
 
-  final List<String> _titles = [
-    'Übersicht', // index 0
-    'Buchungen', // index 1
-    'Gäste', // index 2
-    'Rezensionen', // index 3
-    'E-Mail Zentrale', // index 4
-    'Website Bot Übersicht', // index 5
-    'Support Tickets', // index 6 (NEU)
-    'Wissensdatenbank (RAG)', // index 7 (NEU)
-    'Bot Statistiken', // index 8 (NEU)
-    'Digital Concierge', // index 9 (Verschoben)
-    'Unterkünfte', // index 10 (Verschoben)
-    'Abrechnung', // index 11 (Verschoben)
-    'Einstellungen', // index 12 (Verschoben)
-  ];
+  void _selectItem(AppNavItem item) {
+    setState(() => _selectedItem = item);
+  }
+
+  void _goToOverview() {
+    setState(() => _selectedItem = AppNavItem.overview);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final session = context.read<SessionController>();
+    if (!identical(_session, session)) {
+      _session?.removeListener(_onSessionChanged);
+      _session = session;
+      session.addListener(_onSessionChanged);
+    }
+    _onSessionChanged();
+  }
+
+  @override
+  void dispose() {
+    _session?.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
+  void _onSessionChanged() {
+    final user = _session?.currentUser;
+    if (user == null) return;
+    if (!_needsSelectionSync(user)) return;
+    _scheduleSelectionSync(user);
+  }
+
+  bool _needsSelectionSync(UserMeResponse user) {
+    return _trackedUserId != user.id ||
+        !AppNavigation.canAccess(_selectedItem, user);
+  }
+
+  void _scheduleSelectionSync(UserMeResponse user) {
+    if (_selectionSyncScheduled) return;
+    _selectionSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _selectionSyncScheduled = false;
+      if (!mounted) return;
+      final currentUser = _session?.currentUser;
+      if (currentUser == null || currentUser.id != user.id) return;
+      _syncSelectionForUser(currentUser);
+    });
+  }
+
+  void _syncSelectionForUser(UserMeResponse user) {
+    final allowed = AppNavigation.canAccess(_selectedItem, user);
+    final next =
+        allowed ? _selectedItem : AppNavigation.defaultItem(user);
+    _trackedUserId = user.id;
+    if (_selectedItem != next) {
+      setState(() => _selectedItem = next);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionController>();
+    final user = session.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: Row(
         children: [
           AppSidebar(
-            selectedIndex: _selectedIndex,
-            onItemSelected: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
+            selectedItem: _selectedItem,
+            onItemSelected: _selectItem,
+            user: user,
           ),
           Expanded(
             child: Column(
               children: [
-                TopBar(title: _titles[_selectedIndex]),
+                TopBar(title: AppNavigation.title(_selectedItem)),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(32.0),
-                    child: _buildBody(),
+                    child: _buildBody(user),
                   ),
                 ),
               ],
@@ -76,42 +132,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildBody() {
-    switch (_selectedIndex) {
-      case 0:
+  Widget _buildBody(UserMeResponse user) {
+    if (!AppNavigation.canAccess(_selectedItem, user)) {
+      return ForbiddenPlaceholder(onNavigateHome: _goToOverview);
+    }
+
+    switch (_selectedItem) {
+      case AppNavItem.overview:
         return OverviewScreen(
-          onNavigate: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-          },
+          user: user,
+          onNavigate: _selectItem,
         );
-      case 1:
+      case AppNavItem.bookings:
         return const BookingsScreen();
-      case 2:
+      case AppNavItem.guests:
         return const GuestsScreen();
-      case 3:
-        return const ReviewsScreen(); // NEU
-      case 4:
+      case AppNavItem.reviews:
+        return const ReviewsScreen();
+      case AppNavItem.emails:
         return const EmailScreen();
-      case 5:
+      case AppNavItem.websiteBotOverview:
         return const WebsiteBotScreen();
-      case 6:
+      case AppNavItem.supportTickets:
         return const SupportTicketsScreen();
-      case 7:
+      case AppNavItem.knowledgeBase:
         return const KnowledgeBaseScreen();
-      case 8:
+      case AppNavItem.botStatistics:
         return const BotStatisticsScreen();
-      case 9:
+      case AppNavItem.concierge:
         return const ConciergeScreen();
-      case 10:
+      case AppNavItem.accommodations:
         return const AccommodationsScreen();
-      case 11:
+      case AppNavItem.billing:
         return const BillingScreen();
-      case 12:
+      case AppNavItem.settings:
         return const SettingsScreen();
-      default:
-        return const Center(child: Text('Dieser Bereich ist in der Demo nicht verfügbar.', style: TextStyle(color: Colors.grey)));
     }
   }
 }

@@ -1,20 +1,103 @@
 import 'package:flutter/material.dart';
 
-class OverviewScreen extends StatelessWidget {
-  // Diese Funktion erlaubt es uns, den Tab im Dashboard zu wechseln!
-  final Function(int) onNavigate;
+import '../../../core/navigation/app_navigation.dart';
+import '../../../data/models/user_models.dart';
 
-  const OverviewScreen({super.key, required this.onNavigate});
+class OverviewScreen extends StatelessWidget {
+  final UserMeResponse user;
+  final void Function(AppNavItem item) onNavigate;
+
+  const OverviewScreen({
+    super.key,
+    required this.user,
+    required this.onNavigate,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final cards = <Widget>[
+      if (AppNavigation.canAccess(AppNavItem.emails, user))
+        _buildSummaryCard(
+          icon: Icons.mark_email_unread_outlined,
+          iconColor: Colors.blue,
+          title: '5 neue E-Mails',
+          description:
+              'Kategorisiert und Antworten durch die KI vorbereitet. Warten auf Freigabe.',
+          buttonText: 'E-Mails prüfen',
+          onTap: () => onNavigate(AppNavItem.emails),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.reviews, user))
+        _buildSummaryCard(
+          icon: Icons.star_border_outlined,
+          iconColor: Colors.orange,
+          title: '3 Bewertungen',
+          description:
+              'Neue Google-Rezensionen wurden automatisch und charmant beantwortet.',
+          buttonText: 'Rezensionen',
+          onTap: () => onNavigate(AppNavItem.reviews),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.concierge, user))
+        _buildSummaryCard(
+          icon: Icons.cloudy_snowing,
+          iconColor: Colors.teal,
+          title: 'Concierge-Update',
+          description:
+              'Regen erwartet. Gäste erhalten nun automatisch Tipps für Indoor-Aktivitäten.',
+          buttonText: 'Aktivitäten',
+          onTap: () => onNavigate(AppNavItem.concierge),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.websiteBotOverview, user))
+        _buildSummaryCard(
+          icon: Icons.chat_bubble_outline,
+          iconColor: Colors.purple,
+          title: '92 Chat-Anfragen',
+          description:
+              'Der Website-Bot hat 92 Fragen gelöst, ohne dass ein Ticket erstellt werden musste.',
+          buttonText: 'Chat-Logs',
+          onTap: () => onNavigate(AppNavItem.websiteBotOverview),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.supportTickets, user))
+        _buildSummaryCard(
+          icon: Icons.confirmation_num_outlined,
+          iconColor: Colors.purple,
+          title: 'Support-Tickets',
+          description: 'Eskalierte Anfragen, die der Bot nicht selbst lösen konnte.',
+          buttonText: 'Tickets öffnen',
+          onTap: () => onNavigate(AppNavItem.supportTickets),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.bookings, user))
+        _buildSummaryCard(
+          icon: Icons.minor_crash_outlined,
+          iconColor: Colors.indigo,
+          title: 'Check-in Monitor',
+          description:
+              '12 Kennzeichen wurden erkannt und automatisch mit Buchungen abgeglichen.',
+          buttonText: 'Anreiseliste',
+          onTap: () => onNavigate(AppNavItem.bookings),
+        ),
+      if (AppNavigation.canAccess(AppNavItem.billing, user))
+        _buildSummaryCard(
+          icon: Icons.trending_up,
+          iconColor: Colors.green,
+          title: 'Revenue Booster',
+          description:
+              'KI hat 4 Gästen proaktiv Upgrades (See-Platz/Frühstück) erfolgreich angeboten.',
+          buttonText: 'Umsatz-Details',
+          onTap: () => onNavigate(AppNavItem.billing),
+        ),
+    ];
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Guten Morgen!',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF212121)),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF212121),
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -22,61 +105,10 @@ class OverviewScreen extends StatelessWidget {
             style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 32),
-
-          // Das Grid mit 6 Karten
           Wrap(
             spacing: 24,
             runSpacing: 24,
-            children: [
-              _buildSummaryCard(
-                icon: Icons.mark_email_unread_outlined,
-                iconColor: Colors.blue,
-                title: '5 neue E-Mails',
-                description: 'Kategorisiert und Antworten durch die KI vorbereitet. Warten auf Freigabe.',
-                buttonText: 'E-Mails prüfen',
-                onTap: () => onNavigate(4), // Führt zu Index 4 (E-Mails)
-              ),
-              _buildSummaryCard(
-                icon: Icons.star_border_outlined,
-                iconColor: Colors.orange,
-                title: '3 Bewertungen',
-                description: 'Neue Google-Rezensionen wurden automatisch und charmant beantwortet.',
-                buttonText: 'Rezensionen',
-                onTap: () => onNavigate(3), // Führt zu Index 3 (Rezensionen)
-              ),
-              _buildSummaryCard(
-                icon: Icons.cloudy_snowing,
-                iconColor: Colors.teal,
-                title: 'Concierge-Update',
-                description: 'Regen erwartet. Gäste erhalten nun automatisch Tipps für Indoor-Aktivitäten.',
-                buttonText: 'Aktivitäten',
-                onTap: () => onNavigate(9), // KORRIGIERT: Führt zu Index 9 (Concierge)
-              ),
-              _buildSummaryCard(
-                icon: Icons.chat_bubble_outline,
-                iconColor: Colors.purple,
-                title: '92 Chat-Anfragen',
-                description: 'Der Website-Bot hat 92 Fragen gelöst, ohne dass ein Ticket erstellt werden musste.',
-                buttonText: 'Chat-Logs',
-                onTap: () => onNavigate(5), // Führt zu Index 5 (Website Bot)
-              ),
-              _buildSummaryCard(
-                icon: Icons.minor_crash_outlined,
-                iconColor: Colors.indigo,
-                title: 'Check-in Monitor',
-                description: '12 Kennzeichen wurden erkannt und automatisch mit Buchungen abgeglichen.',
-                buttonText: 'Anreiseliste',
-                onTap: () => onNavigate(1), // Führt zu Index 1 (Buchungen)
-              ),
-              _buildSummaryCard(
-                icon: Icons.trending_up,
-                iconColor: Colors.green,
-                title: 'Revenue Booster',
-                description: 'KI hat 4 Gästen proaktiv Upgrades (See-Platz/Frühstück) erfolgreich angeboten.',
-                buttonText: 'Umsatz-Details',
-                onTap: () => onNavigate(11), // KORRIGIERT: Führt zu Index 11 (Abrechnung)
-              ),
-            ],
+            children: cards,
           ),
         ],
       ),
@@ -89,11 +121,11 @@ class OverviewScreen extends StatelessWidget {
     required String title,
     required String description,
     required String buttonText,
-    required VoidCallback onTap, // Wichtig für die Navigation
+    required VoidCallback onTap,
   }) {
     return Container(
       width: 340,
-      height: 280, // FESTE HÖHE für alle Karten
+      height: 280,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -122,10 +154,13 @@ class OverviewScreen extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF212121)),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF212121),
+            ),
           ),
           const SizedBox(height: 10),
-          // Beschreibung mit fester Zeilenanzahl oder kleinerer Schrift
           Expanded(
             child: Text(
               description,
@@ -138,14 +173,17 @@ class OverviewScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: onTap, // Nutzt jetzt den übergebenen Callback!
+              onPressed: onTap,
               style: OutlinedButton.styleFrom(
                 foregroundColor: iconColor,
                 side: BorderSide(color: iconColor.withValues(alpha: 0.4)),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: Text(buttonText, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              child: Text(
+                buttonText,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],

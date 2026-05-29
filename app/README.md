@@ -49,6 +49,23 @@ final health = await HealthRepository(
 ).checkHealth();
 ```
 
+## RBAC navigation (Step 3)
+
+After login, menu visibility depends on role and permissions from `GET /api/v1/users/me`:
+
+| Role | Visible areas |
+|------|----------------|
+| **staff** | Übersicht, Buchungen, Gäste, E-Mails, Website Bot → Tickets / Support |
+| **super** | All menu items (demo PMS, bot, analytics, settings) |
+
+Staff cannot open super-only screens; the app shows **Keine Berechtigung für diesen Bereich** if access is denied.
+
+Manual smoke:
+
+- Login as staff → verify limited sidebar; open Tickets under Website Bot.
+- Login as super → verify full sidebar.
+- Logout and session restart behave as in Step 2.
+
 ## Authentication (Step 2)
 
 The app shows a login screen before the dashboard. Tokens are stored with `flutter_secure_storage` (not passwords).
