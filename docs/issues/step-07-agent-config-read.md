@@ -2,7 +2,12 @@
 
 ## Status
 
-Open
+Resolved
+
+## Resolved In
+
+- Commit: `69acdfa`
+- Notes: Super read-only bot config and knowledge documents via `AgentRepository` and `ApiClient.getJsonList`.
 
 ## Priority
 
