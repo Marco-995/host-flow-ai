@@ -34,7 +34,7 @@ class OverviewScreen extends StatelessWidget {
                 title: '5 neue E-Mails',
                 description: 'Kategorisiert und Antworten durch die KI vorbereitet. Warten auf Freigabe.',
                 buttonText: 'E-Mails prüfen',
-                onTap: () => onNavigate(4), // KORRIGIERT: Führt zu Index 4 (E-Mails)
+                onTap: () => onNavigate(4), // Führt zu Index 4 (E-Mails)
               ),
               _buildSummaryCard(
                 icon: Icons.star_border_outlined,
@@ -42,7 +42,7 @@ class OverviewScreen extends StatelessWidget {
                 title: '3 Bewertungen',
                 description: 'Neue Google-Rezensionen wurden automatisch und charmant beantwortet.',
                 buttonText: 'Rezensionen',
-                onTap: () => onNavigate(3), // KORRIGIERT: Führt zu Index 3 (Rezensionen)
+                onTap: () => onNavigate(3), // Führt zu Index 3 (Rezensionen)
               ),
               _buildSummaryCard(
                 icon: Icons.cloudy_snowing,
@@ -50,7 +50,7 @@ class OverviewScreen extends StatelessWidget {
                 title: 'Concierge-Update',
                 description: 'Regen erwartet. Gäste erhalten nun automatisch Tipps für Indoor-Aktivitäten.',
                 buttonText: 'Aktivitäten',
-                onTap: () => onNavigate(6), // KORRIGIERT: Führt zu Index 6 (Concierge)
+                onTap: () => onNavigate(9), // KORRIGIERT: Führt zu Index 9 (Concierge)
               ),
               _buildSummaryCard(
                 icon: Icons.chat_bubble_outline,
@@ -58,7 +58,7 @@ class OverviewScreen extends StatelessWidget {
                 title: '92 Chat-Anfragen',
                 description: 'Der Website-Bot hat 92 Fragen gelöst, ohne dass ein Ticket erstellt werden musste.',
                 buttonText: 'Chat-Logs',
-                onTap: () => onNavigate(5), // KORRIGIERT: Führt zu Index 5 (Website Bot)
+                onTap: () => onNavigate(5), // Führt zu Index 5 (Website Bot)
               ),
               _buildSummaryCard(
                 icon: Icons.minor_crash_outlined,
@@ -66,7 +66,7 @@ class OverviewScreen extends StatelessWidget {
                 title: 'Check-in Monitor',
                 description: '12 Kennzeichen wurden erkannt und automatisch mit Buchungen abgeglichen.',
                 buttonText: 'Anreiseliste',
-                onTap: () => onNavigate(1), // KORRIGIERT: Führt zu Index 1 (Buchungen)
+                onTap: () => onNavigate(1), // Führt zu Index 1 (Buchungen)
               ),
               _buildSummaryCard(
                 icon: Icons.trending_up,
@@ -74,7 +74,7 @@ class OverviewScreen extends StatelessWidget {
                 title: 'Revenue Booster',
                 description: 'KI hat 4 Gästen proaktiv Upgrades (See-Platz/Frühstück) erfolgreich angeboten.',
                 buttonText: 'Umsatz-Details',
-                onTap: () => onNavigate(8), // KORRIGIERT: Führt zu Index 8 (Abrechnung)
+                onTap: () => onNavigate(11), // KORRIGIERT: Führt zu Index 11 (Abrechnung)
               ),
             ],
           ),
