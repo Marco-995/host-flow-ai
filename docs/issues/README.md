@@ -18,14 +18,13 @@ GitHub Issues are not used for this track. Each step is a Markdown file in this 
 | 6 | Ticket Messages | Message thread GET/POST on `TicketDetailScreen` |
 | 7 | Agent Config Read | `AgentRepository`, knowledge list + bot config read-only UI |
 | 8 | Analytics Summary | `AnalyticsRepository`, `BotStatisticsScreen` with 7/30/90 days |
+| 9 | Mock Cleanup + Tests | Demo/API copy, README integration matrix, overview tests |
 
 ## Open steps (implementation order)
 
-| Step | File | Priority | Depends on |
-|------|------|----------|------------|
-| 9 | [step-09-mock-cleanup-tests.md](./step-09-mock-cleanup-tests.md) | P1 | Steps 4–8 |
+_None — v1 backend integration track (Steps 1–9) is complete on this branch. See **Future / backlog** below._
 
-Steps 4 → 5 → 6 → 7 → 8 are complete; **Step 9** (mock cleanup, honest demo labeling, README smoke) is the remaining integration-track step before future backlog work.
+Steps 1 → 9 are complete. Next work is future/backlog issues (admin write, chat API, UI shell, etc.).
 
 ## Future / backlog
 
@@ -55,7 +54,7 @@ flutter test
 
 ## How to use these issues
 
-1. Pick the next open step (Step 9).
+1. Pick the next item from **Future / backlog** (integration Steps 1–9 are done).
 2. Implement only the **Scope**; respect **Out of Scope**.
 3. Check off **Acceptance Criteria** before marking done in your commit/PR description.
 4. Run **Validation Commands** and manual smoke where listed.

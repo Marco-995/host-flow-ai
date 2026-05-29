@@ -2,7 +2,12 @@
 
 ## Status
 
-Open
+Resolved
+
+## Resolved In
+
+- Commit: `2f9cfe0`
+- Notes: Demo vs API-backed copy cleanup, README integration matrix and smoke, overview/email labeling, widget tests.
 
 ## Priority
 
