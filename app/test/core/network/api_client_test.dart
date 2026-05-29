@@ -131,6 +131,100 @@ void main() {
       expect(ex.error.code, 'network_error');
     });
 
+    test('postJson sends JSON body', () async {
+      mockClient = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.headers['Content-Type'], 'application/json');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['username'], 'u');
+        return http.Response(
+          jsonEncode({'access_token': 'a', 'refresh_token': 'r'}),
+          200,
+        );
+      });
+      apiClient = ApiClient(httpClient: mockClient, baseUrl: baseUrl);
+
+      final json = await apiClient.postJson(
+        '/api/v1/auth/login',
+        {'username': 'u', 'password': 'p'},
+        skipAuthRetry: true,
+      );
+      expect(json['access_token'], 'a');
+    });
+
+    test('postVoid accepts 204 without JSON', () async {
+      mockClient = MockClient((_) async => http.Response('', 204));
+      apiClient = ApiClient(httpClient: mockClient, baseUrl: baseUrl);
+
+      await apiClient.postVoid(
+        '/api/v1/auth/logout',
+        {'refresh_token': 'rt'},
+        authenticated: true,
+        skipAuthRetry: true,
+      );
+    });
+
+    test('authenticated GET sends Bearer header', () async {
+      mockClient = MockClient((request) async {
+        expect(request.headers['Authorization'], 'Bearer my_token');
+        return http.Response('{"status":"ok","version":"v1"}', 200);
+      });
+      apiClient = ApiClient(
+        httpClient: mockClient,
+        baseUrl: baseUrl,
+      )..getAccessToken = () => 'my_token';
+
+      await apiClient.getJson('/api/v1/health', authenticated: true);
+    });
+
+    test('401 retries once after onUnauthorized succeeds', () async {
+      var callCount = 0;
+      mockClient = MockClient((request) async {
+        callCount++;
+        if (callCount == 1) {
+          return http.Response(
+            jsonEncode({'code': 'UNAUTHORIZED', 'message': 'expired'}),
+            401,
+          );
+        }
+        expect(request.headers['Authorization'], 'Bearer refreshed');
+        return http.Response(
+          jsonEncode({
+            'id': 'staff:x',
+            'username': 'x',
+            'role': 'staff',
+            'permissions': {
+              'tickets_read': true,
+              'tickets_write': true,
+              'analytics_read': false,
+              'knowledge_read': false,
+              'knowledge_write': false,
+              'bot_config_read': false,
+              'bot_config_write': false,
+            },
+          }),
+          200,
+        );
+      });
+      var token = 'old';
+      apiClient = ApiClient(
+        httpClient: mockClient,
+        baseUrl: baseUrl,
+      );
+      apiClient.getAccessToken = () => token;
+      apiClient.onUnauthorized = () async {
+        token = 'refreshed';
+        return true;
+      };
+
+      final json = await apiClient.getJson(
+        '/api/v1/users/me',
+        authenticated: true,
+      );
+      expect(callCount, 2);
+      expect(json['username'], 'x');
+    });
+
     test('strips trailing slash from base URL', () async {
       final client = ApiClient(
         httpClient: MockClient((request) async {

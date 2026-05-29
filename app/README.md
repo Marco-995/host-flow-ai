@@ -49,6 +49,24 @@ final health = await HealthRepository(
 ).checkHealth();
 ```
 
+## Authentication (Step 2)
+
+The app shows a login screen before the dashboard. Tokens are stored with `flutter_secure_storage` (not passwords).
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+1. Enter staff or super credentials from your cp-chatbot deployment.
+2. After login, the dashboard opens; use the logout icon in the top bar (tooltip: **Abmelden**).
+3. `GET /api/v1/users/me` loads role and permissions (RBAC navigation filtering is Step 3).
+
+Manual smoke:
+
+- Login as **staff** → dashboard, no server errors on `/users/me`.
+- Logout → login screen again.
+- Login as **super** → dashboard; permissions include analytics/knowledge/bot config flags on `/users/me`.
+
 ## Validation
 
 ```bash
@@ -57,3 +75,5 @@ flutter pub get
 flutter analyze
 flutter test
 ```
+
+Existing `withOpacity` analyzer infos in `knowledge_base_screen.dart` are pre-existing and non-blocking.

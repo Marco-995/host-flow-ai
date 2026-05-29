@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart'; // Wichtig für deutsche Wochentage
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
+
+import '../session/session_controller.dart';
 
 class TopBar extends StatefulWidget {
   final String title;
@@ -78,7 +81,14 @@ class _TopBarState extends State<TopBar> {
               )
             ],
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
+
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.grey, size: 24),
+            tooltip: 'Abmelden',
+            onPressed: () => context.read<SessionController>().logout(),
+          ),
+          const SizedBox(width: 8),
 
           // Profilbild Placeholder
           const CircleAvatar(
