@@ -2,7 +2,12 @@
 
 ## Status
 
-Open
+Resolved
+
+## Resolved In
+
+- Commit: `2b5ca6b`
+- Notes: Analytics summary on `BotStatisticsScreen` via `AnalyticsRepository` and days selector 7/30/90.
 
 ## Priority
 

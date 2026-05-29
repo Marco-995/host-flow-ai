@@ -17,15 +17,15 @@ GitHub Issues are not used for this track. Each step is a Markdown file in this 
 | 5 | Ticket Detail + Status Update | `TicketDetailScreen`, GET/PATCH ticket APIs |
 | 6 | Ticket Messages | Message thread GET/POST on `TicketDetailScreen` |
 | 7 | Agent Config Read | `AgentRepository`, knowledge list + bot config read-only UI |
+| 8 | Analytics Summary | `AnalyticsRepository`, `BotStatisticsScreen` with 7/30/90 days |
 
 ## Open steps (implementation order)
 
 | Step | File | Priority | Depends on |
 |------|------|----------|------------|
-| 8 | [step-08-analytics-summary.md](./step-08-analytics-summary.md) | P1 | Step 2, 3 |
 | 9 | [step-09-mock-cleanup-tests.md](./step-09-mock-cleanup-tests.md) | P1 | Steps 4–8 |
 
-Step 8 can proceed after Step 3. Steps 4 → 5 → 6 → 7 are complete; Step 9 follows Steps 4–8.
+Steps 4 → 5 → 6 → 7 → 8 are complete; Step 9 is next.
 
 ## Future / backlog
 
@@ -55,7 +55,7 @@ flutter test
 
 ## How to use these issues
 
-1. Pick the next open step in order (Step 8, then 9).
+1. Pick the next open step (Step 9).
 2. Implement only the **Scope**; respect **Out of Scope**.
 3. Check off **Acceptance Criteria** before marking done in your commit/PR description.
 4. Run **Validation Commands** and manual smoke where listed.
