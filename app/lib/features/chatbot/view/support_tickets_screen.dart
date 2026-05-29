@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/network/api_error.dart';
+import '../../../core/session/session_controller.dart';
 import '../../../data/models/ticket_models.dart';
 import '../../../data/repositories/ticket_repository.dart';
+import 'ticket_detail_screen.dart';
 
 enum _TicketListPhase { loading, error, empty, data }
 
@@ -77,10 +79,22 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     return e.error.message;
   }
 
-  void _onTicketTap(TicketListItem ticket) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ticket #${ticket.id}: Details folgen in Step 5')),
+  Future<void> _onTicketTap(TicketListItem ticket) async {
+    final canWrite =
+        context.read<SessionController>().currentUser?.permissions.canWriteTickets ??
+            false;
+    final refreshed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TicketDetailScreen(
+          ticketId: ticket.id,
+          repository: _repository,
+          canWrite: canWrite,
+        ),
+      ),
     );
+    if (refreshed == true && mounted) {
+      _loadTickets();
+    }
   }
 
   @override

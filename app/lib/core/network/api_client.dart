@@ -104,6 +104,26 @@ class ApiClient {
     return _handleJsonResponse(response);
   }
 
+  /// PATCH request returning a JSON object map.
+  Future<Map<String, dynamic>> patchJson(
+    String path,
+    Map<String, dynamic> body, {
+    bool authenticated = false,
+    bool skipAuthRetry = false,
+  }) async {
+    final response = await _send(
+      path: path,
+      authenticated: authenticated,
+      skipAuthRetry: skipAuthRetry,
+      send: (uri, headers) => _httpClient.patch(
+        uri,
+        headers: headers,
+        body: jsonEncode(body),
+      ),
+    );
+    return _handleJsonResponse(response);
+  }
+
   /// POST request with no JSON body in the response (e.g. 204 logout).
   Future<void> postVoid(
     String path,

@@ -29,4 +29,21 @@ class TicketRepository {
     );
     return TicketListResponse.fromJson(json);
   }
+
+  Future<TicketDetail> getTicket(int id) async {
+    final json = await _apiClient.getJson(
+      '/api/v1/tickets/$id',
+      authenticated: true,
+    );
+    return TicketDetail.fromJson(json);
+  }
+
+  Future<TicketDetail> updateStatus(int id, TicketStatus status) async {
+    final json = await _apiClient.patchJson(
+      '/api/v1/tickets/$id',
+      TicketStatusUpdateRequest(status: status).toJson(),
+      authenticated: true,
+    );
+    return TicketDetail.fromJson(json);
+  }
 }

@@ -56,7 +56,13 @@ With cp-chatbot running and a user that has ticket permissions:
 1. Login as **staff** or **super**.
 2. Open **Website Bot → Tickets / Support**.
 3. The app loads `GET /api/v1/tickets` (list, empty, or error with retry).
-4. Tapping a ticket shows a hint that details arrive in Step 5.
+4. Tap a ticket to open the detail screen (Step 5).
+
+## Support ticket detail (Step 5)
+
+1. From the ticket list, tap a ticket — opens `TicketDetailScreen` with data from `GET /api/v1/tickets/{id}`.
+2. Change status via dropdown or action chip (requires `tickets_write`; `PATCH /api/v1/tickets/{id}`).
+3. Use back to return; the list reloads if the status changed.
 
 ## RBAC navigation (Step 3)
 

@@ -121,4 +121,47 @@ void main() {
     });
     expect(item.createdAtParsed, isNotNull);
   });
+
+  group('TicketDetail', () {
+    Map<String, dynamic> detailJson({String status = 'open'}) => {
+          'id': 7,
+          'status': status,
+          'origin': 'legacy',
+          'created_at': '2024-06-01T10:00:00',
+          'updated_at': '2024-06-01T11:00:00',
+          'customer_email': 'gast@example.com',
+          'questions': [
+            {'index': 1, 'text': 'Gibt es Stellplätze mit Strom?'},
+          ],
+          'allowed_actions': ['close'],
+          'message_count': 2,
+        };
+
+    test('parses backend detail shape', () {
+      final detail = TicketDetail.fromJson(detailJson());
+      expect(detail.id, 7);
+      expect(detail.status, TicketStatus.open);
+      expect(detail.questions, hasLength(1));
+      expect(detail.questions.first.text, contains('Stellplätze'));
+      expect(detail.allowedActions, ['close']);
+      expect(detail.messageCount, 2);
+    });
+
+    test('missing allowed_actions defaults to empty', () {
+      final json = detailJson()..remove('allowed_actions');
+      expect(TicketDetail.fromJson(json).allowedActions, isEmpty);
+    });
+  });
+
+  test('TicketStatusUpdateRequest serializes status', () {
+    final body = const TicketStatusUpdateRequest(status: TicketStatus.closed)
+        .toJson();
+    expect(body['status'], 'closed');
+  });
+
+  test('TicketStatus.fromAllowedAction maps close to closed', () {
+    expect(TicketStatus.fromAllowedAction('close'), TicketStatus.closed);
+    expect(TicketStatus.fromAllowedAction('reopen'), TicketStatus.open);
+    expect(TicketStatus.fromAllowedAction('archive'), TicketStatus.archived);
+  });
 }

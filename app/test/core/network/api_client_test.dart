@@ -225,6 +225,41 @@ void main() {
       expect(json['username'], 'x');
     });
 
+    test('patchJson sends JSON body with Bearer', () async {
+      mockClient = MockClient((request) async {
+        expect(request.method, 'PATCH');
+        expect(request.url.path, '/api/v1/tickets/42');
+        expect(request.headers['Authorization'], 'Bearer patch_token');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['status'], 'closed');
+        return http.Response(
+          jsonEncode({
+            'id': 42,
+            'status': 'closed',
+            'origin': 'legacy',
+            'created_at': '2024-01-01T00:00:00',
+            'updated_at': '2024-01-01T00:00:00',
+            'customer_email': 'g@example.com',
+            'questions': [],
+            'allowed_actions': ['reopen', 'archive'],
+            'message_count': 0,
+          }),
+          200,
+        );
+      });
+      apiClient = ApiClient(
+        httpClient: mockClient,
+        baseUrl: baseUrl,
+      )..getAccessToken = () => 'patch_token';
+
+      final json = await apiClient.patchJson(
+        '/api/v1/tickets/42',
+        {'status': 'closed'},
+        authenticated: true,
+      );
+      expect(json['status'], 'closed');
+    });
+
     test('strips trailing slash from base URL', () async {
       final client = ApiClient(
         httpClient: MockClient((request) async {

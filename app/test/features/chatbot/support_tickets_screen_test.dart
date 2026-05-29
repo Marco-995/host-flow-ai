@@ -3,10 +3,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:host_flow/core/network/api_client.dart';
 import 'package:host_flow/core/network/api_error.dart';
 import 'package:host_flow/data/models/ticket_models.dart';
+import 'package:host_flow/data/models/user_models.dart';
 import 'package:host_flow/data/repositories/ticket_repository.dart';
+import 'package:host_flow/core/session/session_controller.dart';
+import 'package:host_flow/data/repositories/auth_repository.dart';
 import 'package:host_flow/features/chatbot/view/support_tickets_screen.dart';
+import 'package:host_flow/features/chatbot/view/ticket_detail_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+
+import '../../core/storage/fake_token_storage.dart';
 import 'package:http/testing.dart';
+
+SessionController _sessionWithTicketWrite() {
+  final client = ApiClient(
+    httpClient: MockClient((_) async => http.Response('{}', 200)),
+    baseUrl: 'http://127.0.0.1:8000',
+  );
+  final session = SessionController(
+    authRepository: AuthRepository(apiClient: client),
+    tokenStorage: FakeTokenStorage(),
+  );
+  session.status = SessionStatus.authenticated;
+  session.currentUser = UserMeResponse.fromJson({
+    'id': 'staff:alice',
+    'username': 'alice',
+    'role': 'staff',
+    'permissions': {
+      'tickets_read': true,
+      'tickets_write': true,
+      'analytics_read': false,
+      'knowledge_read': false,
+      'knowledge_write': false,
+      'bot_config_read': false,
+      'bot_config_write': false,
+    },
+  });
+  return session;
+}
 
 TicketListResponse _singleTicketResponse() {
   return TicketListResponse.fromJson({
@@ -32,10 +66,28 @@ TicketListResponse _singleTicketResponse() {
   });
 }
 
+TicketDetail _detailForList() {
+  return TicketDetail.fromJson({
+    'id': 7,
+    'status': 'open',
+    'origin': 'legacy',
+    'created_at': '2024-06-01T10:00:00',
+    'updated_at': '2024-06-01T11:00:00',
+    'customer_email': 'gast@example.com',
+    'questions': [
+      {'index': 1, 'text': 'Stellplätze mit Strom?'},
+    ],
+    'allowed_actions': ['close'],
+    'message_count': 2,
+  });
+}
+
 class FakeTicketRepository extends TicketRepository {
   FakeTicketRepository({
     required Future<TicketListResponse> Function() onListTickets,
+    Future<TicketDetail> Function(int id)? onGetTicket,
   })  : _onListTickets = onListTickets,
+        _onGetTicket = onGetTicket,
         super(
           apiClient: ApiClient(
             httpClient: MockClient(
@@ -46,6 +98,7 @@ class FakeTicketRepository extends TicketRepository {
         );
 
   final Future<TicketListResponse> Function() _onListTickets;
+  final Future<TicketDetail> Function(int id)? _onGetTicket;
   var listCallCount = 0;
 
   @override
@@ -56,6 +109,13 @@ class FakeTicketRepository extends TicketRepository {
   }) async {
     listCallCount++;
     return _onListTickets();
+  }
+
+  @override
+  Future<TicketDetail> getTicket(int id) async {
+    final handler = _onGetTicket;
+    if (handler != null) return handler(id);
+    return _detailForList();
   }
 }
 
@@ -164,18 +224,35 @@ void main() {
     );
   });
 
-  testWidgets('tap shows step 5 snackbar', (tester) async {
+  testWidgets('tap opens ticket detail screen', (tester) async {
     final repo = FakeTicketRepository(
       onListTickets: () async => _singleTicketResponse(),
+      onGetTicket: (_) async => _detailForList(),
     );
 
-    await tester.pumpWidget(_wrapScreen(repo));
+    final session = _sessionWithTicketWrite();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangeNotifierProvider<SessionController>.value(
+          value: session,
+          child: Scaffold(
+            body: SizedBox(
+              height: 600,
+              width: 800,
+              child: SupportTicketsScreen(repository: repo),
+            ),
+          ),
+        ),
+      ),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
     await tester.tap(find.text('Ticket #7'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
-    expect(find.text('Ticket #7: Details folgen in Step 5'), findsOneWidget);
+    expect(find.byType(TicketDetailScreen), findsOneWidget);
+    expect(find.text('Fragen'), findsOneWidget);
   });
 }
